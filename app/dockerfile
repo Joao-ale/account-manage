@@ -2,26 +2,28 @@ FROM eclipse-temurin:17-jdk-jammy as build
 
 WORKDIR /app
 
+ENV GRADLE_OPTS="-Xmx512m -Dorg.gradle.parallel=false"
+
 COPY gradlew .
 COPY gradle gradle
 COPY build.gradle* .
 COPY settings.gradle* .
 
+RUN sed -i 's/\r$//' gradlew
 RUN chmod +x gradlew
 
-RUN ./gradlew dependencies --no-daemon || true
+# removido porque trava e consome RAM demais
+# RUN ./gradlew dependencies --no-daemon || true
 
 COPY . .
 
-RUN ./gradlew clean build -x test --no-daemon
+RUN ./gradlew clean build -x test --no-daemon --no-parallel
 
-# ---------------------------
-# Runtime
-# ---------------------------
+
 FROM eclipse-temurin:17-jre-jammy
-
 WORKDIR /app
+
 COPY --from=build /app/build/libs/*.jar app.jar
 
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"] 
+ENTRYPOINT ["java", "-jar", "/app/app.jar"]
